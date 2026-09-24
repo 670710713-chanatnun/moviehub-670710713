@@ -1,85 +1,81 @@
-// src/pages/MovieDetail.jsx
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import ReviewForm from '../components/ReviewForm';
 import { getMovie } from '../api/tmdb';
 
-export default function MovieDetail() {
-  const { id } = useParams();
+function MovieDetail() {
+  const { id } = useParams();                       // ได้เป็น string เสมอ (ตอนนี้คือรหัสของ TMDB)
   const [movie, setMovie] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let ignore = false;
-
-    async function fetchDetail() {
+    async function load() {
       setStatus('loading');
-      setError(null);
       try {
-        const data = await getMovie(id);
-        if (!ignore) {
-          setMovie(data);
-          setStatus('success');
-        }
+        const m = await getMovie(id);
+        if (!ignore) { setMovie(m); setStatus('success'); }
       } catch (err) {
-        if (!ignore) {
-          setError(err);
-          setStatus('error');
-        }
+        if (!ignore) { setError(err); setStatus('error'); }
       }
     }
-
-    fetchDetail();
-
-    return () => {
-      ignore = true;
-    };
-  }, [id]);
+    load();
+    return () => { ignore = true; };
+  }, [id]);                                          // id เปลี่ยน = โหลดเรื่องใหม่
 
   if (status === 'loading') {
-    return <div className="py-20 text-center text-slate-500">กำลังโหลดข้อมูล...</div>;
-  }
-
-  if (status === 'error') {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-700">
-        <p>เกิดข้อผิดพลาด: {error?.message}</p>
-        <Link to="/movies" className="mt-4 inline-block text-sm text-blue-600 underline">
-          กลับไปหน้าหนังทั้งหมด
-        </Link>
+      <div className="mx-auto max-w-4xl animate-pulse px-4 py-10 md:px-6">
+        <div className="flex flex-col gap-8 md:flex-row">
+          <div className="aspect-[2/3] w-48 shrink-0 rounded-xl bg-slate-100" />
+          <div className="flex-1 space-y-3">
+            <div className="h-8 w-2/3 rounded bg-slate-100" />
+            <div className="h-4 w-1/3 rounded bg-slate-100" />
+            <div className="h-24 w-full rounded bg-slate-100" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!movie) return null;
+  if (status === 'error') {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-20 text-center">
+        <p className="text-lg text-slate-700">ไม่พบหนังเรื่องนี้ 😢</p>
+        <p className="text-sm text-slate-400">{error.message}</p>
+        <Link to="/movies" className="mt-6 inline-block text-sm text-slate-500 underline">กลับไปหน้าหนังทั้งหมด</Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <Link to="/movies" className="text-sm font-medium text-blue-600 hover:underline">
-        &larr; กลับไปหน้าค้นหา
-      </Link>
+    <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
+      <Link to="/movies" className="text-sm text-slate-500 hover:text-slate-900">กลับไปหน้าหนังทั้งหมด</Link>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="overflow-hidden rounded-xl bg-slate-100">
-          {movie.poster ? (
-            <img src={movie.poster} alt={movie.title} className="w-full object-cover" />
-          ) : (
-            <div className="flex aspect-[2/3] items-center justify-center text-slate-400">
-              ไม่มีรูปภาพ
-            </div>
-          )}
-        </div>
+      <div className="mt-4 flex flex-col gap-8 md:flex-row">
+        {movie.poster ? (
+          <img src={movie.poster} alt={`โปสเตอร์ ${movie.title}`}
+               className="w-48 shrink-0 self-start rounded-xl border border-slate-200" />
+        ) : (
+          <div className="grid aspect-[2/3] w-48 shrink-0 place-items-center rounded-xl bg-slate-100 text-5xl">🎬</div>
+        )}
 
-        <div className="space-y-4 md:col-span-2">
-          <h1 className="text-3xl font-bold text-slate-800">{movie.title}</h1>
-          <div className="flex items-center gap-4 text-sm text-slate-500">
-            {movie.year && <span>ปี {movie.year}</span>}
-            {movie.genre && <span className="rounded bg-slate-100 px-2 py-1">{movie.genre}</span>}
-            {movie.rating && <span className="font-semibold text-amber-500">★ {movie.rating}</span>}
+        <div className="flex-1">
+          <h1 className="text-2xl font-semibold text-slate-900 md:text-3xl">{movie.title}</h1>
+          {movie.titleTh && <p className="mt-1 text-slate-500">{movie.titleTh}</p>}
+          <p className="mt-2 text-sm text-slate-500">
+            {movie.year}{movie.genre && ` | ${movie.genre}`}{movie.rating != null && ` | ⭐ ${movie.rating}`}
+          </p>
+          <p className="mt-4 leading-relaxed text-slate-700">{movie.detail}</p>
+
+          <div className="mt-8 rounded-xl border border-slate-200 p-5">
+            <ReviewForm key={movie.id} movieTitle={movie.title} />
           </div>
-          <p className="text-slate-600 leading-relaxed">{movie.detail}</p>
         </div>
       </div>
     </div>
   );
 }
+
+export default MovieDetail;
